@@ -1,0 +1,327 @@
+<!-- ... existing code ... -->
+<html lang="en" class="h-full bg-slate-50 text-slate-600">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RetroidChat</title>
+    <!-- Web App / PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="RetroidChat">
+    <meta name="theme-color" content="#f8fafc">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        -webkit-tap-highlight-color: transparent;
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .selectable {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans antialiased overflow-hidden select-none bg-slate-50 text-slate-600">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500">
+                <i class="fa-solid fa-terminal text-sm"></i>
+            </div>
+            <div>
+                <h1 class="font-medium text-sm leading-tight tracking-wide text-slate-700">RetroidChat</h1>
+                <p class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                    <span id="status-indicator" class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block"></span>
+                    <span id="device-label">Session Active</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-1">
+            <button id="clear-btn" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition active:scale-95" title="Clear All">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+            <button id="pwa-info-btn" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition active:scale-95" title="Install App Info">
+                <i class="fa-solid fa-download text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Paste Action Bar -->
+    <div class="bg-white/80 border-b border-slate-200/80 px-4 py-2 flex items-center justify-between shrink-0">
+        <span class="text-[11px] font-normal text-slate-400">Quick Actions</span>
+        <button onclick="pasteClipboardToInput()" class="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-500 rounded-md text-xs font-normal hover:bg-slate-200/60 active:scale-95 transition flex items-center gap-1.5">
+            <i class="fa-regular fa-clipboard text-slate-400"></i> Paste from clip
+        </button>
+    </div>
+
+    <!-- Main Message List -->
+    <main id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-3">
+        <!-- Messages will render dynamically here -->
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-700 text-slate-100 text-xs font-normal px-4 py-2 rounded-lg shadow-sm opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-2 z-50">
+        <i class="fa-solid fa-circle-check text-slate-300"></i>
+        <span id="toast-message">Copied to clipboard</span>
+    </div>
+
+    <!-- Chat Input Form -->
+    <footer class="bg-white border-t border-slate-200 p-3 shrink-0">
+        <form id="chat-form" class="flex items-end gap-2 max-w-4xl mx-auto">
+            <div class="relative flex-1">
+                <textarea 
+                    id="message-input" 
+                    rows="1"
+                    placeholder="Type or paste commands, cheat codes..." 
+                    class="w-full bg-slate-50 text-slate-600 placeholder-slate-400 rounded-lg px-3.5 py-2.5 text-xs border border-slate-200 focus:outline-none focus:border-slate-300 resize-none font-mono transition max-h-32"
+                    style="min-height: 40px;"
+                ></textarea>
+            </div>
+            <button 
+                type="submit" 
+                class="h-[40px] w-[40px] bg-slate-100 border border-slate-200 hover:bg-slate-200/80 text-slate-500 rounded-lg flex items-center justify-center shrink-0 active:scale-95 transition"
+            >
+                <i class="fa-solid fa-arrow-up text-xs"></i>
+            </button>
+        </form>
+    </footer>
+
+    <!-- PWA / Add To Home Screen Instructions Modal -->
+    <div id="pwa-modal" class="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 max-w-sm w-full shadow-lg space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-normal text-xs text-slate-600 flex items-center gap-2">
+                    <i class="fa-solid fa-mobile-screen text-slate-400"></i> Install RetroidChat
+                </h3>
+                <button id="close-modal-btn" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs text-slate-500 leading-relaxed">
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-1">
+                    <p class="font-medium text-slate-600">iOS (Safari):</p>
+                    <ol class="list-decimal list-inside space-y-0.5 text-slate-400">
+                        <li>Tap the <strong class="text-slate-500">Share icon</strong>.</li>
+                        <li>Select <strong class="text-slate-500">Add to Home Screen</strong>.</li>
+                    </ol>
+                </div>
+
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200/80 space-y-1">
+                    <p class="font-medium text-slate-600">Android / Retroid Nova:</p>
+                    <ol class="list-decimal list-inside space-y-0.5 text-slate-400">
+                        <li>Tap <strong class="text-slate-500">Menu (3 dots)</strong>.</li>
+                        <li>Select <strong class="text-slate-500">Install App</strong> or <strong class="text-slate-500">Add to Home screen</strong>.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <button id="dismiss-modal-btn" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-normal rounded-lg transition border border-slate-200">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // Initial state
+        let messages = [
+            {
+                id: "1",
+                text: "0068-01-99",
+                sender: "Sender",
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+        ];
+
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+        const pwaModal = document.getElementById('pwa-modal');
+        const pwaInfoBtn = document.getElementById('pwa-info-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const dismissModalBtn = document.getElementById('dismiss-modal-btn');
+        const clearBtn = document.getElementById('clear-btn');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderMessages();
+            setupTextareaAutoResize();
+        });
+
+        function setupTextareaAutoResize() {
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 128) + 'px';
+            });
+
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    chatForm.dispatchEvent(new Event('submit'));
+                }
+            });
+        }
+
+        function renderMessages() {
+            chatContainer.innerHTML = '';
+
+            if (messages.length === 0) {
+                chatContainer.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
+                        <p class="text-xs">No active items.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            messages.forEach((msg) => {
+                const msgCard = document.createElement('div');
+                msgCard.className = `flex flex-col items-start`;
+
+                msgCard.innerHTML = `
+                    <div class="w-full bg-white border border-slate-200 rounded-lg p-3 shadow-none">
+                        <div class="flex items-center justify-between pb-1 mb-1 border-b border-slate-100">
+                            <span class="text-[10px] text-slate-400">${escapeHtml(msg.sender)}</span>
+                            <span class="text-[10px] text-slate-300">${msg.timestamp}</span>
+                        </div>
+                        <div class="text-xs text-slate-500 font-mono break-all leading-relaxed selectable py-1">
+                            ${escapeHtml(msg.text)}
+                        </div>
+                        <div class="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-end">
+                            <button 
+                                onclick="copyToClipboard('${encodeURIComponent(msg.text)}')" 
+                                class="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 text-slate-400 border border-slate-200 rounded text-[11px] transition active:scale-95 flex items-center gap-1"
+                            >
+                                <i class="fa-regular fa-copy text-[10px]"></i>
+                                <span>Copy</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                chatContainer.appendChild(msgCard);
+            });
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if (!text) return;
+
+            const newMessage = {
+                id: Date.now().toString(),
+                text: text,
+                sender: "Sender",
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            messages.push(newMessage);
+            renderMessages();
+
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            showToast('Added');
+        });
+
+        async function pasteClipboardToInput() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        messageInput.value += text;
+                        messageInput.dispatchEvent(new Event('input'));
+                        showToast('Pasted');
+                    }
+                } else {
+                    showToast('Unavailable');
+                }
+            } catch (err) {
+                showToast('Clipboard access denied');
+            }
+        }
+
+        function copyToClipboard(encodedText) {
+            const text = decodeURIComponent(encodedText);
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('Copied');
+                }).catch(() => {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Copied');
+            } catch (err) {
+                showToast('Failed');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function showToast(msg) {
+            toastMessage.textContent = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 1800);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
+        }
+
+        clearBtn.addEventListener('click', () => {
+            messages = [];
+            renderMessages();
+            showToast('Cleared');
+        });
+
+        pwaInfoBtn.addEventListener('click', () => pwaModal.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => pwaModal.classList.add('hidden'));
+        dismissModalBtn.addEventListener('click', () => pwaModal.classList.add('hidden'));
+        pwaModal.addEventListener('click', (e) => {
+            if (e.target === pwaModal) pwaModal.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
